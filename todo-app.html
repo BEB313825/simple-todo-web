@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项应用</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #1f2937;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #374151;
+            color: #e5e7eb;
+            padding: 30px 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            display: block;
+            color: #60a5fa;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .input-section {
+            padding: 25px;
+            border-bottom: 1px solid #374151;
+        }
+
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .priority-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .priority-option {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #4b5563;
+            border-radius: 8px;
+            background: #374151;
+            color: #e5e7eb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .priority-option:hover {
+            border-color: #60a5fa;
+        }
+
+        .priority-option.active {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .priority-option.high.active {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .priority-option.medium.active {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .priority-option.low.active {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        #taskInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #4b5563;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #374151;
+            color: #e5e7eb;
+        }
+
+        #taskInput::placeholder {
+            color: #9ca3af;
+        }
+
+        #taskInput:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+        }
+
+        #addBtn {
+            background: #60a5fa;
+            color: #1f2937;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        #addBtn:hover {
+            background: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+        }
+
+        #addBtn:active {
+            transform: translateY(0);
+        }
+
+        .task-list {
+            padding: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #374151;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .task-item.priority-high {
+            border-left-color: #ef4444;
+        }
+
+        .task-item.priority-medium {
+            border-left-color: #f59e0b;
+        }
+
+        .task-item.priority-low {
+            border-left-color: #10b981;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+
+        .task-item.removing {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        .task-item:hover {
+            background: #4b5563;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #60a5fa;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .task-checkbox:hover {
+            background: rgba(96, 165, 250, 0.2);
+        }
+
+        .task-checkbox.checked {
+            background: #60a5fa;
+        }
+
+        .task-checkbox.checked::after {
+            content: '✓';
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #e5e7eb;
+            transition: all 0.3s ease;
+            word-break: break-word;
+        }
+
+        .task-text.completed {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .edit-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: 8px;
+        }
+
+        .edit-btn:hover {
+            background: #d97706;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+        }
+
+        .empty-state-subtext {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        .clear-section {
+            padding: 0 25px 25px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #clearCompletedBtn, #clearAllBtn {
+            flex: 1;
+            background: #4b5563;
+            color: #e5e7eb;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #clearCompletedBtn:hover, #clearAllBtn:hover {
+            background: #6b7280;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+        }
+
+        #clearCompletedBtn:active, #clearAllBtn:active {
+            transform: translateY(0);
+        }
+
+        #clearCompletedBtn:disabled, #clearAllBtn:disabled {
+            background: #374151;
+            color: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            background: #1f2937;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #e5e7eb;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-message {
+            color: #9ca3af;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.cancel {
+            background: #4b5563;
+            color: #e5e7eb;
+        }
+
+        .modal-btn.cancel:hover {
+            background: #6b7280;
+        }
+
+        .modal-btn.confirm {
+            background: #ef4444;
+            color: white;
+        }
+
+        .modal-btn.confirm:hover {
+            background: #dc2626;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 12px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .stats {
+                padding: 10px;
+            }
+
+            .stat-number {
+                font-size: 20px;
+            }
+
+            .stat-label {
+                font-size: 11px;
+            }
+
+            .input-section {
+                padding: 15px;
+            }
+
+            .task-list {
+                padding: 15px;
+            }
+
+            .task-item {
+                padding: 12px;
+            }
+
+            .task-text {
+                font-size: 15px;
+            }
+
+            .delete-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .edit-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .priority-option {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .clear-section {
+                padding: 0 15px 15px;
+            }
+
+            #clearCompletedBtn, #clearAllBtn {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .stat-number {
+                font-size: 18px;
+            }
+
+            #taskInput {
+                font-size: 14px;
+            }
+
+            #addBtn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            #clearCompletedBtn {
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 我的待办清单</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalTasks">0</span>
+                    <span class="stat-label">总任务</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="completedTasks">0</span>
+                    <span class="stat-label">已完成</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="pendingTasks">0</span>
+                    <span class="stat-label">未完成</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-wrapper">
+                <div class="priority-selector">
+                    <div class="priority-option high" data-priority="high">🔴 高</div>
+                    <div class="priority-option medium active" data-priority="medium">🟡 中</div>
+                    <div class="priority-option low" data-priority="low">🟢 低</div>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="taskInput" placeholder="今天要做什么？" autocomplete="off">
+                    <button id="addBtn">➕ 添加任务</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="task-list" id="taskList">
+            <div class="empty-state">
+                <div class="empty-state-icon">🎉</div>
+                <div class="empty-state-text">太棒了！所有任务都完成了</div>
+                <div class="empty-state-subtext">添加新任务开始新的一天吧！</div>
+            </div>
+        </div>
+
+        <div class="clear-section">
+            <button id="clearCompletedBtn" disabled>🗑️ 清空已完成</button>
+            <button id="clearAllBtn" disabled>🔄 全部清空</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <div class="modal-title">确认操作</div>
+            <div class="modal-message" id="modalMessage">确定要清空所有任务吗？此操作不可撤销。</div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="modalCancel">取消</button>
+                <button class="modal-btn confirm" id="modalConfirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'todo_tasks';
+        
+        const DOM_SELECTORS = {
+            taskInput: 'taskInput',
+            addBtn: 'addBtn',
+            taskList: 'taskList',
+            totalTasks: 'totalTasks',
+            completedTasks: 'completedTasks',
+            pendingTasks: 'pendingTasks',
+            clearCompletedBtn: 'clearCompletedBtn',
+            clearAllBtn: 'clearAllBtn',
+            confirmModal: 'confirmModal',
+            modalMessage: 'modalMessage',
+            modalCancel: 'modalCancel',
+            modalConfirm: 'modalConfirm',
+            priorityOptions: '.priority-option'
+        };
+
+        let tasks = [];
+        let selectedPriority = 'medium';
+        let editingTaskId = null;
+        let pendingAction = null;
+
+        function loadTasks() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                tasks = JSON.parse(stored);
+            }
+            renderTasks();
+            updateStats();
+        }
+
+        function saveTasks() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        }
+
+        function addTask(text) {
+            const task = {
+                id: Date.now(),
+                text: text.trim(),
+                completed: false,
+                priority: selectedPriority
+            };
+            tasks.unshift(task);
+            saveTasks();
+            renderTasks();
+            updateStats();
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            editingTaskId = id;
+            const input = document.getElementById(DOM_SELECTORS.taskInput);
+            input.value = task.text;
+            input.focus();
+            
+            const addBtn = document.getElementById(DOM_SELECTORS.addBtn);
+            addBtn.textContent = '💾 保存';
+            
+            updatePrioritySelection(task.priority);
+        }
+
+        function saveEditedTask() {
+            if (!editingTaskId) return;
+
+            const input = document.getElementById(DOM_SELECTORS.taskInput);
+            const text = input.value.trim();
+            
+            if (text) {
+                const task = tasks.find(t => t.id === editingTaskId);
+                if (task) {
+                    task.text = text;
+                    task.priority = selectedPriority;
+                    saveTasks();
+                    renderTasks();
+                    updateStats();
+                }
+            }
+
+            cancelEdit();
+        }
+
+        function cancelEdit() {
+            editingTaskId = null;
+            const input = document.getElementById(DOM_SELECTORS.taskInput);
+            input.value = '';
+            input.focus();
+            
+            const addBtn = document.getElementById(DOM_SELECTORS.addBtn);
+            addBtn.textContent = '➕ 添加任务';
+            
+            updatePrioritySelection('medium');
+        }
+
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                saveTasks();
+                renderTasks();
+                updateStats();
+            }
+        }
+
+        function deleteTask(id) {
+            const taskElement = document.querySelector(`[data-id="${id}"]`);
+            if (taskElement) {
+                taskElement.classList.add('removing');
+                setTimeout(() => {
+                    tasks = tasks.filter(t => t.id !== id);
+                    saveTasks();
+                    renderTasks();
+                    updateStats();
+                }, 300);
+            }
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById(DOM_SELECTORS.taskList);
+            
+            if (tasks.length === 0) {
+                taskList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎉</div>
+                        <div class="empty-state-text">太棒了！所有任务都完成了</div>
+                        <div class="empty-state-subtext">添加新任务开始新的一天吧！</div>
+                    </div>
+                `;
+                return;
+            }
+
+            taskList.innerHTML = tasks.map(task => `
+                <div class="task-item priority-${task.priority}" data-id="${task.id}">
+                    <div class="task-checkbox ${task.completed ? 'checked' : ''}" data-action="toggle"></div>
+                    <span class="task-text ${task.completed ? 'completed' : ''}">${escapeHtml(task.text)}</span>
+                    <div class="action-buttons">
+                        <button class="edit-btn" data-action="edit">✏️</button>
+                        <button class="delete-btn" data-action="delete">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const pending = total - completed;
+
+            document.getElementById(DOM_SELECTORS.totalTasks).textContent = total;
+            document.getElementById(DOM_SELECTORS.completedTasks).textContent = completed;
+            document.getElementById(DOM_SELECTORS.pendingTasks).textContent = pending;
+
+            const clearCompletedBtn = document.getElementById(DOM_SELECTORS.clearCompletedBtn);
+            const clearAllBtn = document.getElementById(DOM_SELECTORS.clearAllBtn);
+            
+            clearCompletedBtn.disabled = completed === 0;
+            clearAllBtn.disabled = total === 0;
+        }
+
+        function clearCompletedTasks() {
+            const completedCount = tasks.filter(t => t.completed).length;
+            if (completedCount === 0) return;
+
+            tasks = tasks.filter(t => !t.completed);
+            saveTasks();
+            renderTasks();
+            updateStats();
+        }
+
+        function showConfirmModal(message, onConfirm) {
+            const modal = document.getElementById(DOM_SELECTORS.confirmModal);
+            const modalMessage = document.getElementById(DOM_SELECTORS.modalMessage);
+            
+            modalMessage.textContent = message;
+            modal.classList.add('active');
+            pendingAction = onConfirm;
+        }
+
+        function hideConfirmModal() {
+            const modal = document.getElementById(DOM_SELECTORS.confirmModal);
+            modal.classList.remove('active');
+            pendingAction = null;
+        }
+
+        function confirmClearAll() {
+            tasks = [];
+            saveTasks();
+            renderTasks();
+            updateStats();
+            hideConfirmModal();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updatePrioritySelection(priority) {
+            selectedPriority = priority;
+            const options = document.querySelectorAll(DOM_SELECTORS.priorityOptions);
+            options.forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.priority === priority) {
+                    option.classList.add('active');
+                }
+            });
+        }
+
+        function handlePriorityClick(e) {
+            const option = e.target.closest('.priority-option');
+            if (!option) return;
+            
+            const priority = option.dataset.priority;
+            updatePrioritySelection(priority);
+        }
+
+        function handleTaskListClick(e) {
+            const taskItem = e.target.closest('.task-item');
+            if (!taskItem) return;
+
+            const id = parseInt(taskItem.dataset.id);
+            const action = e.target.dataset.action;
+
+            if (action === 'toggle') {
+                toggleTask(id);
+            } else if (action === 'delete') {
+                deleteTask(id);
+            } else if (action === 'edit') {
+                editTask(id);
+            }
+        }
+
+        function handleAddTask() {
+            const input = document.getElementById(DOM_SELECTORS.taskInput);
+            const text = input.value.trim();
+            
+            if (editingTaskId) {
+                saveEditedTask();
+            } else if (text) {
+                addTask(text);
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function init() {
+            loadTasks();
+
+            const taskInput = document.getElementById(DOM_SELECTORS.taskInput);
+            const addBtn = document.getElementById(DOM_SELECTORS.addBtn);
+            const taskList = document.getElementById(DOM_SELECTORS.taskList);
+            const clearCompletedBtn = document.getElementById(DOM_SELECTORS.clearCompletedBtn);
+            const clearAllBtn = document.getElementById(DOM_SELECTORS.clearAllBtn);
+            const prioritySelector = document.querySelector('.priority-selector');
+            const modalCancel = document.getElementById(DOM_SELECTORS.modalCancel);
+            const modalConfirm = document.getElementById(DOM_SELECTORS.modalConfirm);
+
+            addBtn.addEventListener('click', handleAddTask);
+            taskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleAddTask();
+                }
+            });
+
+            taskList.addEventListener('click', handleTaskListClick);
+            clearCompletedBtn.addEventListener('click', clearCompletedTasks);
+            clearAllBtn.addEventListener('click', () => {
+                showConfirmModal('确定要清空所有任务吗？此操作不可撤销。', confirmClearAll);
+            });
+            
+            prioritySelector.addEventListener('click', handlePriorityClick);
+            
+            modalCancel.addEventListener('click', hideConfirmModal);
+            modalConfirm.addEventListener('click', () => {
+                if (pendingAction) {
+                    pendingAction();
+                }
+            });
+            
+            document.getElementById(DOM_SELECTORS.confirmModal).addEventListener('click', (e) => {
+                if (e.target.id === DOM_SELECTORS.confirmModal) {
+                    hideConfirmModal();
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
